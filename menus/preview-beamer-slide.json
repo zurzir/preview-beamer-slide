@@ -1,0 +1,18 @@
+{
+  "menu": [
+    {
+      "label": "Packages",
+      "submenu": [
+        {
+          "label": "preview-beamer-slide",
+          "submenu": [
+            {
+              "label": "Visualizar frame",
+              "command": "preview-beamer-slide:preview"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

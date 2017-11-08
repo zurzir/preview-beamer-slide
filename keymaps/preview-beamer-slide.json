@@ -1,0 +1,7 @@
+{
+  "atom-workspace": {
+      "alt-l": "preview-beamer-slide:preview",
+      "alt-k": "preview-beamer-slide:previous-frame",
+      "alt-j": "preview-beamer-slide:next-frame"
+  }
+}

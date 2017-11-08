@@ -1,0 +1,34 @@
+{
+    "name": "preview-beamer-slide",
+    "main": "./lib/preview-beamer-slide",
+    "version": "0.0.0",
+    "description": "Faz um preview do slide do beamer",
+    "keywords": [],
+    "activationCommands": {
+        "atom-workspace": "preview-beamer-slide:preview",
+        "atom-workspace": "preview-beamer-slide:previous-frame",
+        "atom-workspace": "preview-beamer-slide:next-frame"
+    },
+    "configSchema": {
+        "previewerEnable": {
+            "title": "Habilitar preview",
+            "description": "Habilita execução do previsualizador",
+            "type": "boolean",
+            "default": true,
+            "order": 1
+        },
+        "previewerPath": {
+            "title": "Previwer Path",
+            "description": "O caminho para o programa de visualização com argumentos separados por espaços",
+            "type": "string",
+            "default": "okular --unique",
+            "order": 2
+        }
+    },
+    "repository": "none",
+    "license": "MIT",
+    "engines": {
+        "atom": ">=1.0.0 <2.0.0"
+    },
+    "dependencies": {}
+}
