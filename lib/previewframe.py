@@ -1,11 +1,14 @@
+#!/usr/bin/env python3
+
+import argparse
 import os.path
 import re
 import subprocess
-import argparse
 
 #COMPILER_COMMAND = 'xelatex'
 COMPILER_COMMAND = ['pdflatex', '-interaction=nonstopmode']
-PREVIWER_COMMAND = ['okular', '--unique']
+#PREVIWER_COMMAND = ['okular', '--unique']
+PREVIWER_COMMAND = ['evince']
 TEMP_FILE = 'beamerprevframe.tex'
 
 
@@ -72,6 +75,11 @@ def extract_frame(lines, linenum, nbefore, nafter):
                 end_line = i
                 break
             n += 1
+
+        if nafter == n and re.match(r'\\end\{frame\}', lines[i]):
+            lines[i] = re.sub(r'^(.*\\end\{frame\}).*$', r'\1', lines[i])
+            end_line = i
+            break
 
     return "".join(lines[begin_line:end_line+1])
 
