@@ -5,7 +5,8 @@ import os.path
 import re
 import subprocess
 
-#COMPILER_COMMAND = 'xelatex'
+# COMPILER_COMMAND = ['xelatex', '-interaction=nonstopmode']
+# COMPILER_COMMAND = ['latexmk', '-xelatex']
 COMPILER_COMMAND = ['pdflatex', '-interaction=nonstopmode']
 #PREVIWER_COMMAND = ['okular', '--unique']
 PREVIWER_COMMAND = ['evince']
@@ -58,13 +59,18 @@ def extract_frame(lines, linenum, nbefore, nafter):
 
     begin_line = 0
     n = 0
+    found = False
     for i in range(linenum, -1, -1):
         if re.match(r'(\\begin\{frame\}|\\frame\{)', lines[i]):
             if n >= nbefore:
                 lines[i] = re.sub(r'^.*(\\begin\{frame\}|\\frame\{)', r'\1', lines[i])
                 begin_line = i
+                found = True
                 break
             n += 1
+
+    if not found:
+        raise Exception('Nenhum frame encontrado')
 
     end_line = len(lines)
     n = 0
