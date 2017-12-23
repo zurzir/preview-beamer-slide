@@ -87,7 +87,7 @@ def extract_frame(lines, linenum, nbefore, nafter):
             end_line = i
             break
 
-    return "".join(lines[begin_line:end_line+1])
+    return "".join(lines[begin_line:end_line + 1])
 
 
 def create_prevfile(args):
