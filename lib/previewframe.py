@@ -8,8 +8,8 @@ import subprocess
 # COMPILER_COMMAND = ['xelatex', '-interaction=nonstopmode']
 # COMPILER_COMMAND = ['latexmk', '-xelatex']
 COMPILER_COMMAND = ['pdflatex', '-interaction=nonstopmode']
-#PREVIWER_COMMAND = ['okular', '--unique']
-PREVIWER_COMMAND = ['evince']
+PREVIWER_COMMAND = ['okular', '--unique']
+# PREVIWER_COMMAND = ['evince']
 TEMP_FILE = 'beamerprevframe.tex'
 
 
@@ -127,7 +127,7 @@ def main():
     args.linenum -= 1
 
     create_prevfile(args)
-    subprocess.check_call(COMPILER_COMMAND + [TEMP_FILE])
+    subprocess.call(COMPILER_COMMAND + [TEMP_FILE])
     pdffile = re.sub(r'\.tex$', '.pdf', TEMP_FILE)
     if not args.nopreview:
         if args.previewer:
