@@ -127,7 +127,7 @@ def main():
     args.linenum -= 1
 
     create_prevfile(args)
-    subprocess.call(COMPILER_COMMAND + [TEMP_FILE])
+    subprocess.check_call(COMPILER_COMMAND + [TEMP_FILE])
     pdffile = re.sub(r'\.tex$', '.pdf', TEMP_FILE)
     if not args.nopreview:
         if args.previewer:
