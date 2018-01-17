@@ -5,13 +5,7 @@ import os.path
 import re
 import subprocess
 
-# COMPILER_COMMAND = ['xelatex', '-interaction=nonstopmode']
-# COMPILER_COMMAND = ['latexmk', '-xelatex']
-COMPILER_COMMAND = ['pdflatex', '-interaction=nonstopmode']
-PREVIWER_COMMAND = ['okular', '--unique']
-# PREVIWER_COMMAND = ['evince']
 TEMP_FILE = 'beamerprevframe.tex'
-
 
 def read_lines(filename):
     with open(filename) as f:
@@ -62,12 +56,19 @@ def extract_frame(lines, linenum, nbefore, nafter):
     found = False
     for i in range(linenum, -1, -1):
         if re.match(r'(\\begin\{frame\}|\\frame\{)', lines[i]):
-            if n >= nbefore:
-                lines[i] = re.sub(r'^.*(\\begin\{frame\}|\\frame\{)', r'\1', lines[i])
+            # atingiu nbefore frames antes, mas não encontrou o end frame
+            if n > nbefore:
+                break
+            if n == nbefore:
+                # lines[i] = re.sub(r'^.*(\\begin\{frame\}|\\frame\{)', r'\1', lines[i])
                 begin_line = i
                 found = True
-                break
             n += 1
+
+        # procurar até o \end{frame}, assim inclui macros imediatamente antes do frame
+        if n > nbefore and re.match(r'\\end\{frame\}', lines[i]):
+            begin_line = i + 1
+            break
 
     if not found:
         raise Exception('Nenhum frame encontrado')
@@ -77,8 +78,8 @@ def extract_frame(lines, linenum, nbefore, nafter):
     for i in range(linenum + 1, len(lines)):
         if re.match(r'(\\begin\{frame\}|\\frame\{)', lines[i]):
             if n >= nafter:
-                lines[i] = re.sub(r'^(.*)(\\begin\{frame\}|\\frame\{).*$', r'\1', lines[i])
-                end_line = i
+                # lines[i] = re.sub(r'^(.*)(\\begin\{frame\}|\\frame\{).*$', r'\1', lines[i])
+                end_line = i - 1
                 break
             n += 1
 
@@ -119,21 +120,22 @@ def main():
                         no mesmo diretorio')
     parser.add_argument('-a', dest='nbefore', type=int, default=0, help='número da frames antes')
     parser.add_argument('-d', dest='nafter', type=int, default=0, help='número da frames depois')
-    parser.add_argument('-p', dest='previewer', help='visualizador do pdf')
+    parser.add_argument('-p', dest='previewer', default='evince', help='visualizador do pdf (argumentos separados por espaço)')
+    parser.add_argument('-c', dest='compiler', default='pdflatex -interaction=nonstopmode', help='copilador do pdf (argumentos separados por espaço)')
     parser.add_argument('-n', dest='nopreview', action='store_true', help='desabilita visualização de pdf')
     args = parser.parse_args()
 
     # linha começa do zero no vetor do python
     args.linenum -= 1
 
+    # obtém comandos como listas
+    previwer_command = re.split(r' +', args.previewer.strip())
+    compiler_command = re.split(r' +', args.compiler.strip())
+
     create_prevfile(args)
-    subprocess.check_call(COMPILER_COMMAND + [TEMP_FILE])
+    subprocess.check_call(compiler_command + [TEMP_FILE])
     pdffile = re.sub(r'\.tex$', '.pdf', TEMP_FILE)
     if not args.nopreview:
-        if args.previewer:
-            cmd = re.split(r' +', args.previewer.strip())
-        else:
-            cmd = PREVIWER_COMMAND
-        subprocess.Popen(cmd + [pdffile])
+        subprocess.Popen(previwer_command + [pdffile])
 
 main()
