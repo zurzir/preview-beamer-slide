@@ -121,7 +121,7 @@ def main():
     parser.add_argument('-a', dest='nbefore', type=int, default=0, help='número da frames antes')
     parser.add_argument('-d', dest='nafter', type=int, default=0, help='número da frames depois')
     parser.add_argument('-p', dest='previewer', default='evince', help='visualizador do pdf (argumentos separados por espaço)')
-    parser.add_argument('-c', dest='compiler', default='pdflatex -interaction=nonstopmode', help='copilador do pdf (argumentos separados por espaço)')
+    parser.add_argument('-c', dest='compiler', default='pdflatex -interaction=nonstopmode -shell-escape', help='copilador do pdf (argumentos separados por espaço)')
     parser.add_argument('-n', dest='nopreview', action='store_true', help='desabilita visualização de pdf')
     args = parser.parse_args()
 
