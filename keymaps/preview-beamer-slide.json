@@ -2,6 +2,8 @@
   "atom-workspace": {
       "alt-l": "preview-beamer-slide:preview",
       "alt-k": "preview-beamer-slide:previous-frame",
-      "alt-j": "preview-beamer-slide:next-frame"
+      "alt-j": "preview-beamer-slide:next-frame",
+      "alt-q": "preview-beamer-slide:rewrap-paragraph",
+      "alt-z": "preview-beamer-slide:rejoin-paragraph"
   }
 }

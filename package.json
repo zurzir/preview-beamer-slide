@@ -7,7 +7,9 @@
     "activationCommands": {
         "atom-workspace": "preview-beamer-slide:preview",
         "atom-workspace": "preview-beamer-slide:previous-frame",
-        "atom-workspace": "preview-beamer-slide:next-frame"
+        "atom-workspace": "preview-beamer-slide:next-frame",
+        "atom-workspace": "preview-beamer-slide:rewrap-paragraph",
+        "atom-workspace": "preview-beamer-slide:rejoin-paragraph"
     },
     "configSchema": {
         "previewerEnable": {
