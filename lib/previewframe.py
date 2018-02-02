@@ -72,7 +72,7 @@ def extract_frame(lines, linenum, nbefore, nafter):
             n += 1
 
         # procurar até o \end{frame}, assim inclui macros imediatamente antes do frame
-        if n > nbefore and re.match(r'\\end\{frame\}', lines[i]):
+        if n > nbefore and re.match(r'\\end\{frame\}|\s*\\input|\s*\\begin\{document\}|%%', lines[i]):
             begin_line = i + 1
             break
 
