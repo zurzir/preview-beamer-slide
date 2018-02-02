@@ -49,7 +49,8 @@ def find_preamble(dirpath, candidate, candidate_lines):
                 return extract_pramble(other_lines), other
     raise Exception('No preamble found')
 
-def extract_frame(lines, linenum, nbefore, nafter):
+
+def extract_frame(lines, linenum, nbefore, nafter, include_surroundings):
     '''
     Finds a series of frames around a given line number and extracts
     the range immediately befor such frames
@@ -57,41 +58,58 @@ def extract_frame(lines, linenum, nbefore, nafter):
     returns: frame, first_line_in_range
 
     '''
+
+    # procuara linha de início
     begin_line = 0
     n = 0
     found = False
     for i in range(linenum, -1, -1):
-        if re.match(r'(\\begin\{frame\}|\\frame\{)', lines[i]):
-            # atingiu nbefore frames antes, mas não encontrou o end frame
+        if re.match(r'\\begin\{frame\}|\\frame\{', lines[i]):
+            # atingiu mais separadores do que o esperado, mas não encontrou
+            # separador de fim de sorrounding
             if n > nbefore:
                 break
+
+            # atingiu número de separadores esperados
             if n == nbefore:
-                # lines[i] = re.sub(r'^.*(\\begin\{frame\}|\\frame\{)', r'\1', lines[i])
                 begin_line = i
                 found = True
+                if not include_surroundings:
+                    break
             n += 1
 
-        # procurar até o \end{frame}, assim inclui macros imediatamente antes do frame
-        if n > nbefore and re.match(r'\\end\{frame\}|\s*\\input|\s*\\begin\{document\}|%%', lines[i]):
+        # já encontrou os separadores esperados, procura até
+        # fim do frame anterior, inclusão de arquivo ou
+        # marcas %% de sorrounding
+        if n >= nbefore and re.match(r'\\end\{frame\}|\\input|\\begin\{document\}|%%', lines[i]):
             begin_line = i + 1
             break
 
     if not found:
         raise Exception('Nenhum frame encontrado')
 
+    # procuara linha de fim
     end_line = len(lines)
     n = 0
     for i in range(linenum + 1, len(lines)):
-        if re.match(r'(\\begin\{frame\}|\\frame\{)', lines[i]):
-            if n >= nafter:
-                # lines[i] = re.sub(r'^(.*)(\\begin\{frame\}|\\frame\{).*$', r'\1', lines[i])
-                end_line = i - 1
+        if re.match(r'\\end\{frame\}', lines[i]):
+            # atingiu mais separadores do que o esperado, mas não encontrou
+            # separador de fim de sorrounding
+            if n > nafter:
                 break
+
+            # atingiu número de separadores esperados
+            if n == nafter:
+                end_line = i
+                if not include_surroundings:
+                    break
             n += 1
 
-        if nafter == n and re.match(r'\\end\{frame\}', lines[i]):
-            lines[i] = re.sub(r'^(.*\\end\{frame\}).*$', r'\1', lines[i])
-            end_line = i
+        # já encontrou os separadores esperados, procura até
+        # início do frame posterior, inclusão de arquivo ou
+        # marcas %% de sorrounding
+        if n >= nbefore and re.match(r'\\begin\{frame\}|\\frame\{|\\input|\\end\{document\}|%%', lines[i]):
+            end_line = i - 1
             break
 
     return "".join(lines[begin_line:end_line + 1]), begin_line
@@ -129,7 +147,7 @@ def create_prevfile(args):
 
         p, p_file = find_preamble(dirpath, candidate, candidate_lines)
 
-        r, first_frame_line = extract_frame(tex_lines, args.linenum, args.nbefore, args.nafter)
+        r, first_frame_line = extract_frame(tex_lines, args.linenum, args.nbefore, args.nafter, args.include_surroundings)
         h = '' if p_file == args.texfile else extract_header(tex_lines, first_frame_line)
 
         f.write(p)
@@ -149,6 +167,10 @@ def main():
                         no mesmo diretorio')
     parser.add_argument('-a', dest='nbefore', type=int, default=0, help='número da frames antes')
     parser.add_argument('-d', dest='nafter', type=int, default=0, help='número da frames depois')
+    parser.add_argument('-s', dest='include_surroundings', action='store_false',
+                              help='Desabilita a includsão dos arredores dos frames \
+                              (normalmente usados para comandos gerais; os arredores \
+                              podem ser delimitados por comentários que começãom com %%')
     parser.add_argument('-p', dest='previewer', default='evince', help='visualizador do pdf (argumentos separados por espaço)')
     parser.add_argument('-c', dest='compiler', default='pdflatex -interaction=nonstopmode -shell-escape', help='copilador do pdf (argumentos separados por espaço)')
     parser.add_argument('-n', dest='nopreview', action='store_true', help='desabilita visualização de pdf')
