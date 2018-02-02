@@ -33,24 +33,30 @@ def has_preamble(lines):
     return False
 
 
-def find_preamble(file, dirpath, lines):
-    if has_preamble(lines):
-        return extract_pramble(lines)
+def find_preamble(dirpath, candidate, candidate_lines):
+    'Returns: preamble, preamble_file'
+    if has_preamble(candidate_lines):
+        return extract_pramble(candidate_lines), candidate
     else:
         from glob import glob
-        for fn in glob(os.path.join(dirpath, '*.tex')):
-            if file == fn:
+        for other in glob(os.path.join(dirpath, '*.tex')):
+            if candidate == other:
                 continue
-            fnlines = read_lines(fn)
-            if has_preamble(fnlines):
-                if os.path.basename(fn) == TEMP_FILE:
+            other_lines = read_lines(other)
+            if has_preamble(other_lines):
+                if os.path.basename(other) == TEMP_FILE:
                     continue
-                return extract_pramble(fnlines)
+                return extract_pramble(other_lines), other
     raise Exception('No preamble found')
 
-
 def extract_frame(lines, linenum, nbefore, nafter):
+    '''
+    Finds a series of frames around a given line number and extracts
+    the range immediately befor such frames
 
+    returns: frame, first_line_in_range
+
+    '''
     begin_line = 0
     n = 0
     found = False
@@ -66,7 +72,7 @@ def extract_frame(lines, linenum, nbefore, nafter):
             n += 1
 
         # procurar até o \end{frame}, assim inclui macros imediatamente antes do frame
-        if n > nbefore and re.match(r'\\end\{frame\}', lines[i]):
+        if n > nbefore and re.match(r'\\end\{frame\}|\s*\\input|\s*\\begin\{document\}|%%', lines[i]):
             begin_line = i + 1
             break
 
@@ -88,24 +94,47 @@ def extract_frame(lines, linenum, nbefore, nafter):
             end_line = i
             break
 
-    return "".join(lines[begin_line:end_line + 1])
+    return "".join(lines[begin_line:end_line + 1]), begin_line
 
+
+def extract_header(lines, linenum):
+    '''
+    extracts the first few lines in a file before any frame
+    and strictly befor the given line number
+
+    return: header
+    '''
+
+    h = ''
+    for i in range(linenum):
+        if re.match(r'\\begin\{(frame|document)\}|\\(frame|section|subsection)\{', lines[i]):
+            break
+        h += lines[i]
+
+    return h
 
 def create_prevfile(args):
 
     with open(TEMP_FILE, 'w') as f:
-        lines = read_lines(args.texfile)
+        tex_lines = read_lines(args.texfile)
         dirpath = os.path.dirname(args.texfile)
+
+        # best guess for mainfile canditate
         if args.mainfile:
-            prefile = args.mainfile
-            prelines = read_lines(prefile)
+            candidate = args.mainfile
+            candidate_lines = read_lines(candidate)
         else:
-            prefile = args.texfile
-            prelines = lines
-        p = find_preamble(prefile, dirpath, prelines)
-        r = extract_frame(lines, args.linenum, args.nbefore, args.nafter)
+            candidate = args.texfile
+            candidate_lines = tex_lines
+
+        p, p_file = find_preamble(dirpath, candidate, candidate_lines)
+
+        r, first_frame_line = extract_frame(tex_lines, args.linenum, args.nbefore, args.nafter)
+        h = '' if p_file == args.texfile else extract_header(tex_lines, first_frame_line)
+
         f.write(p)
         f.write("\\begin{document}\n")
+        f.write(h)
         f.write(r)
         f.write("\\end{document}\n")
 
