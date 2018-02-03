@@ -4,6 +4,9 @@
     "version": "0.0.0",
     "description": "Faz um preview do slide do beamer",
     "keywords": [],
+    "activationHooks": [
+        "language-latex:grammar-used"
+    ],
     "activationCommands": {
         "atom-workspace": "preview-beamer-slide:preview",
         "atom-workspace": "preview-beamer-slide:previous-frame",
