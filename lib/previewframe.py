@@ -81,7 +81,7 @@ def extract_frame(lines, linenum, nbefore, nafter, include_surroundings):
         # já encontrou os separadores esperados, procura até
         # fim do frame anterior, inclusão de arquivo ou
         # marcas %% de sorrounding
-        if n >= nbefore and re.match(r'\\end\{frame\}|\\input|\\begin\{document\}|%%', lines[i]):
+        if n >= nbefore and re.match(r'\\end\{frame\}|\\input|\\begin\{document\}|\\section|\\subsection|%%', lines[i]):
             begin_line = i + 1
             break
 
@@ -108,7 +108,7 @@ def extract_frame(lines, linenum, nbefore, nafter, include_surroundings):
         # já encontrou os separadores esperados, procura até
         # início do frame posterior, inclusão de arquivo ou
         # marcas %% de sorrounding
-        if n >= nbefore and re.match(r'\\begin\{frame\}|\\frame\{|\\input|\\end\{document\}|%%', lines[i]):
+        if n >= nbefore and re.match(r'\\begin\{frame\}|\\frame\{|\\input|\\end\{document\}|\\section|\\subsection|%%', lines[i]):
             end_line = i - 1
             break
 
