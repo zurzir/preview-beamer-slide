@@ -150,6 +150,7 @@ def create_prevfile(args):
         r, first_frame_line = extract_frame(tex_lines, args.linenum, args.nbefore, args.nafter, args.include_surroundings)
         h = '' if p_file == args.texfile else extract_header(tex_lines, first_frame_line)
 
+        f.write(args.before_preample)
         f.write(p)
         f.write("\\begin{document}\n")
         f.write(h)
@@ -174,6 +175,9 @@ def main():
     parser.add_argument('-p', dest='previewer', default='evince', help='visualizador do pdf (argumentos separados por espaço)')
     parser.add_argument('-c', dest='compiler', default='pdflatex -interaction=nonstopmode -shell-escape', help='copilador do pdf (argumentos separados por espaço)')
     parser.add_argument('-n', dest='nopreview', action='store_true', help='desabilita visualização de pdf')
+    parser.add_argument('-b', dest='before_preample', default='',
+                              help='Concatena antes do preâmbulo; útil para passar \
+                              argumentos para pacotes: e.g.: \\PassOptionsToClass{handout}{beamer}')
     args = parser.parse_args()
 
     # linha começa do zero no vetor do python
