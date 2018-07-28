@@ -1,62 +1,58 @@
 {
-    "name": "preview-beamer-slide",
-    "main": "./lib/preview-beamer-slide",
-    "version": "0.0.0",
-    "description": "Faz um preview do slide do beamer e outros utilitários para latex.",
-    "keywords": [],
-    "activationHooks": [
-        "language-latex:grammar-used"
-    ],
-    "activationCommands": {
-        "atom-workspace": "preview-beamer-slide:preview",
-        "atom-workspace": "preview-beamer-slide:previous-frame",
-        "atom-workspace": "preview-beamer-slide:next-frame",
-        "atom-workspace": "preview-beamer-slide:rewrap-paragraph",
-        "atom-workspace": "preview-beamer-slide:rejoin-paragraph"
+  "name": "preview-beamer-slide",
+  "main": "./lib/preview-beamer-slide",
+  "version": "0.1.0",
+  "description": "Faz um preview do slide do beamer e outros utilitários para latex.",
+  "keywords": [],
+  "activationHooks": [
+    "language-latex:grammar-used"
+  ],
+  "activationCommands": {
+    "atom-workspace": "preview-beamer-slide:rejoin-paragraph"
+  },
+  "configSchema": {
+    "previewerEnable": {
+      "title": "Habilitar preview",
+      "description": "Habilita execução do previsualizador",
+      "type": "boolean",
+      "default": true,
+      "order": 1
     },
-    "configSchema": {
-        "previewerEnable": {
-            "title": "Habilitar preview",
-            "description": "Habilita execução do previsualizador",
-            "type": "boolean",
-            "default": true,
-            "order": 1
-        },
-        "previewerPath": {
-            "title": "Previewer Path",
-            "description": "O caminho para o programa de visualização com argumentos separados por espaços",
-            "type": "string",
-            "default": "evince",
-            "order": 2
-        },
-        "compilerPath": {
-            "title": "Latex compiler",
-            "description": "O caminho para o programa de compilação com argumentos separados por espaços; pdflatex é mais rápido, mas se necessário pode-se usar xelatex",
-            "type": "string",
-            "default": "pdflatex -interaction=nonstopmode -shell-escape",
-            "order": 3
-        },
-        "previousFrames": {
-            "title": "Frames anteriores",
-            "description": "Número de frames de contexto a serem compilados antes",
-            "type": "integer",
-            "default": 0,
-            "minimum": 0,
-            "order": 4
-        },
-        "afterFrames": {
-            "title": "Frames posteriores",
-            "description": "Número de frames de contexto a serem compilados depois",
-            "type": "integer",
-            "default": 0,
-            "minimum": 0,
-            "order": 5
-        }
+    "previewerPath": {
+      "title": "Previewer Path",
+      "description": "O caminho para o programa de visualização com argumentos separados por espaços",
+      "type": "string",
+      "default": "evince",
+      "order": 2
     },
-    "repository": "https://github.com/zurzir/preview-beamer-slide",
-    "license": "MIT",
-    "engines": {
-        "atom": ">=1.0.0 <2.0.0"
+    "compilerPath": {
+      "title": "Latex compiler",
+      "description": "O caminho para o programa de compilação com argumentos separados por espaços; pdflatex é mais rápido, mas se necessário pode-se usar xelatex",
+      "type": "string",
+      "default": "pdflatex -interaction=nonstopmode -shell-escape",
+      "order": 3
     },
-    "dependencies": {}
+    "previousFrames": {
+      "title": "Frames anteriores",
+      "description": "Número de frames de contexto a serem compilados antes",
+      "type": "integer",
+      "default": 0,
+      "minimum": 0,
+      "order": 4
+    },
+    "afterFrames": {
+      "title": "Frames posteriores",
+      "description": "Número de frames de contexto a serem compilados depois",
+      "type": "integer",
+      "default": 0,
+      "minimum": 0,
+      "order": 5
+    }
+  },
+  "repository": "https://github.com/zurzir/preview-beamer-slide",
+  "license": "MIT",
+  "engines": {
+    "atom": ">=1.0.0 <2.0.0"
+  },
+  "dependencies": {}
 }
