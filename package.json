@@ -23,14 +23,37 @@
             "order": 1
         },
         "previewerPath": {
-            "title": "Previwer Path",
+            "title": "Previewer Path",
             "description": "O caminho para o programa de visualização com argumentos separados por espaços",
             "type": "string",
-            "default": "okular --unique",
+            "default": "evince",
             "order": 2
+        },
+        "compilerPath": {
+            "title": "Latex compiler",
+            "description": "O caminho para o programa de compilação com argumentos separados por espaços; pdflatex é mais rápido, mas se necessário pode-se usar xelatex",
+            "type": "string",
+            "default": "pdflatex -interaction=nonstopmode -shell-escape",
+            "order": 3
+        },
+        "previousFrames": {
+            "title": "Frames anteriores",
+            "description": "Número de frames de contexto a serem compilados antes",
+            "type": "integer",
+            "default": 0,
+            "minimum": 0,
+            "order": 4
+        },
+        "afterFrames": {
+            "title": "Frames posteriores",
+            "description": "Número de frames de contexto a serem compilados depois",
+            "type": "integer",
+            "default": 0,
+            "minimum": 0,
+            "order": 5
         }
     },
-    "repository": "none",
+    "repository": "https://github.com/zurzir/preview-beamer-slide",
     "license": "MIT",
     "engines": {
         "atom": ">=1.0.0 <2.0.0"

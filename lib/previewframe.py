@@ -5,7 +5,9 @@ import os.path
 import re
 import subprocess
 
-TEMP_FILE = 'beamerprevframe.tex'
+TEMP_FILE_BASE = 'beamerprevframe'
+TEMP_FILE = TEMP_FILE_BASE + '.tex'
+TEMP_PDF = TEMP_FILE_BASE + '.pdf'
 
 def read_lines(filename):
     with open(filename) as f:
@@ -59,56 +61,56 @@ def extract_frame(lines, linenum, nbefore, nafter, include_surroundings):
 
     '''
 
+    # número de separadores inclui o frame atual
+    nbefore += 1
+    nafter += 1
+
     # procuara linha de início
     begin_line = 0
     n = 0
-    found = False
     for i in range(linenum, -1, -1):
         if re.match(r'\\begin\{frame\}|\\frame\{', lines[i]):
+            n += 1
+
             # atingiu mais separadores do que o esperado, mas não encontrou
             # separador de fim de sorrounding
             if n > nbefore:
                 break
-
-            # atingiu número de separadores esperados
-            if n == nbefore:
+            else:
                 begin_line = i
-                found = True
-                if not include_surroundings:
+                if n == nbefore and not include_surroundings:
                     break
-            n += 1
 
         # já encontrou os separadores esperados, procura até
         # fim do frame anterior, inclusão de arquivo ou
         # marcas %% de sorrounding
-        if n >= nbefore and re.match(r'\\end\{frame\}|\\input|\\begin\{document\}|\\section|\\subsection|%%', lines[i]):
+        elif n == nbefore and re.match(r'\\end\{frame\}|\\input|\\begin\{document\}|\\section|\\subsection|%%', lines[i]):
             begin_line = i + 1
             break
 
-    if not found:
+    if n == 0:
         raise Exception('Nenhum frame encontrado')
 
     # procuara linha de fim
-    end_line = len(lines)
+    end_line = len(lines) - 1
     n = 0
-    for i in range(linenum + 1, len(lines)):
+    for i in range(linenum, len(lines)):
         if re.match(r'\\end\{frame\}', lines[i]):
+            n += 1
+
             # atingiu mais separadores do que o esperado, mas não encontrou
             # separador de fim de sorrounding
             if n > nafter:
                 break
-
-            # atingiu número de separadores esperados
-            if n == nafter:
+            else:
                 end_line = i
-                if not include_surroundings:
+                if n == nafter and not include_surroundings:
                     break
-            n += 1
 
         # já encontrou os separadores esperados, procura até
         # início do frame posterior, inclusão de arquivo ou
         # marcas %% de sorrounding
-        if n >= nbefore and re.match(r'\\begin\{frame\}|\\frame\{|\\input|\\end\{document\}|\\section|\\subsection|%%', lines[i]):
+        elif n >= nbefore and re.match(r'\\begin\{frame\}|\\frame\{|\\input|\\end\{document\}|\\section|\\subsection|%%', lines[i]):
             end_line = i - 1
             break
 
@@ -184,13 +186,12 @@ def main():
     args.linenum -= 1
 
     # obtém comandos como listas
-    previwer_command = re.split(r' +', args.previewer.strip())
+    previewer_command = re.split(r' +', args.previewer.strip())
     compiler_command = re.split(r' +', args.compiler.strip())
 
     create_prevfile(args)
     subprocess.check_call(compiler_command + [TEMP_FILE])
-    pdffile = re.sub(r'\.tex$', '.pdf', TEMP_FILE)
     if not args.nopreview:
-        subprocess.Popen(previwer_command + [pdffile])
+        subprocess.Popen(previewer_command + [TEMP_PDF])
 
 main()
