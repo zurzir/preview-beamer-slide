@@ -1,7 +1,7 @@
 {
   "name": "preview-beamer-slide",
   "main": "./lib/preview-beamer-slide",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Faz um preview do slide do beamer e outros utilitários para latex.",
   "keywords": [],
   "activationHooks": [
