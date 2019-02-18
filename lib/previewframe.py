@@ -204,7 +204,7 @@ def main():
         subprocess.check_call(['gunzip', 'beamerprevframe.synctex.gz'])
         sed_exp = 's#^Input:1:.*#Input:1:{}#'.format(os.path.realpath(args.texfile))
         subprocess.check_call(['sed', '-re', sed_exp, '-i', 'beamerprevframe.synctex'])
-        subprocess.check_call(['gzip', 'beamerprevframe.synctex.gz'])
+        subprocess.check_call(['gzip', 'beamerprevframe.synctex'])
 
     if not args.nopreview:
         subprocess.Popen(previewer_command + [TEMP_PDF])
