@@ -41,7 +41,7 @@ def find_preamble(dirpath, candidate, candidate_lines):
         return extract_pramble(candidate_lines), candidate
     else:
         from glob import glob
-        for other in glob(os.path.join(dirpath, '*.tex')):
+        for other in sorted(glob(os.path.join(dirpath, '*.tex'))):
             if candidate == other:
                 continue
             other_lines = read_lines(other)
@@ -52,7 +52,7 @@ def find_preamble(dirpath, candidate, candidate_lines):
     raise Exception('No preamble found')
 
 
-def extract_frame(lines, linenum, nbefore, nafter, include_surroundings):
+def extract_frame(lines, args):
     '''
     Finds a series of frames around a given line number and extracts
     the range immediately befor such frames
@@ -62,29 +62,60 @@ def extract_frame(lines, linenum, nbefore, nafter, include_surroundings):
     '''
 
     # número de separadores inclui o frame atual
-    nbefore += 1
-    nafter += 1
+    nafter = args.nafter + 1
+
+    parse_custom_args = True
 
     # procuara linha de início
     begin_line = 0
     n = 0
-    for i in range(linenum, -1, -1):
-        if re.match(r'\\begin\{frame\}|\\frame\{', lines[i]):
+    for i in range(args.linenum, -1, -1):
+        if re.match(r'\s*\\begin\{frame\}|\\frame\{', lines[i]):
             n += 1
+
+            # analisa configurações uma vez
+            while parse_custom_args:
+                if i <= 0:
+                    break
+
+                m = re.match(r'\s*%!preview\[([^\[\]]*)\]', lines[i - 1])
+                if m is None:
+                    break
+                for conf, val in map(lambda x: x.split('=', 2), m.group(1).split(',')):
+                    conf = conf.strip()
+                    val = val.strip()
+                    # FIXME: setting compiler or previewer is potentially insecure
+                    if conf == 'mainfile':
+                        args.mainfile = val
+                    elif conf == 'nbefore':
+                        args.nbefore = int(val)
+                    elif conf == 'nafter':
+                        args.nafter = int(val)
+                    elif conf == 'include_surroundings':
+                        args.include_surroundings = val.lower() == 'true' or val == '1'
+                    elif conf == 'previewer':
+                        args.previewer = val
+                    elif conf == 'compiler':
+                        args.compiler = val
+                    elif conf == 'nopreview':
+                        args.nopreview = val.lower() == 'true' or val == '1'
+                # assert False, args
+                parse_custom_args = False
+
 
             # atingiu mais separadores do que o esperado, mas não encontrou
             # separador de fim de sorrounding
-            if n > nbefore:
+            if n > args.nbefore + 1:
                 break
             else:
                 begin_line = i
-                if n == nbefore and not include_surroundings:
+                if n == args.nbefore + 1 and not args.include_surroundings:
                     break
 
         # já encontrou os separadores esperados, procura até
         # fim do frame anterior, inclusão de arquivo ou
         # marcas %% de sorrounding
-        elif n == nbefore and re.match(r'\\end\{frame\}|\\input|\\begin\{document\}|\\section|\\subsection|%%', lines[i]):
+        elif n == args.nbefore + 1 and re.match(r'\s*\\end\{frame\}|\\input|\\begin\{document\}|\\section|\\subsection|%%', lines[i]):
             begin_line = i + 1
             break
 
@@ -94,23 +125,23 @@ def extract_frame(lines, linenum, nbefore, nafter, include_surroundings):
     # procuara linha de fim
     end_line = len(lines) - 1
     n = 0
-    for i in range(linenum, len(lines)):
-        if re.match(r'\\end\{frame\}', lines[i]):
+    for i in range(args.linenum, len(lines)):
+        if re.match(r'\s*\\end\{frame\}', lines[i]):
             n += 1
 
             # atingiu mais separadores do que o esperado, mas não encontrou
             # separador de fim de sorrounding
-            if n > nafter:
+            if n > args.nafter + 1:
                 break
             else:
                 end_line = i
-                if n == nafter and not include_surroundings:
+                if n == args.nafter + 1 and not args.include_surroundings:
                     break
 
         # já encontrou os separadores esperados, procura até
         # início do frame posterior, inclusão de arquivo ou
         # marcas %% de sorrounding
-        elif n >= nbefore and re.match(r'\\begin\{frame\}|\\frame\{|\\input|\\end\{document\}|\\section|\\subsection|%%', lines[i]):
+        elif n >= args.nafter + 1 and re.match(r'\s*\\begin\{frame\}|\\frame\{|\\input|\\end\{document\}|\\section|\\subsection|%%', lines[i]):
             end_line = i - 1
             break
 
@@ -137,6 +168,8 @@ def create_prevfile(args):
     tex_lines = read_lines(args.texfile)
     dirpath = os.path.dirname(args.texfile)
 
+    r, first_frame_line, last_frame_line = extract_frame(tex_lines, args)
+
     # best guess for mainfile canditate
     if args.mainfile:
         candidate = args.mainfile
@@ -147,7 +180,6 @@ def create_prevfile(args):
 
     p, p_file = find_preamble(dirpath, candidate, candidate_lines)
 
-    r, first_frame_line, last_frame_line = extract_frame(tex_lines, args.linenum, args.nbefore, args.nafter, args.include_surroundings)
     h = '' if p_file == args.texfile else extract_header(tex_lines, first_frame_line)
 
     contents = args.before_preample
@@ -194,11 +226,13 @@ def main():
     # linha começa do zero no vetor do python
     args.linenum -= 1
 
+    # cria arquivo de preview primeiro, pois ele pode alterar configurações
+    create_prevfile(args)
+
     # obtém comandos como listas
     previewer_command = re.split(r' +', args.previewer.strip())
     compiler_command = re.split(r' +', args.compiler.strip())
 
-    create_prevfile(args)
     subprocess.check_call(compiler_command + [TEMP_FILE])
     if args.hack_synctex:
         subprocess.check_call(['gunzip', 'beamerprevframe.synctex.gz'])
@@ -208,6 +242,7 @@ def main():
 
     if not args.nopreview:
         subprocess.Popen(previewer_command + [TEMP_PDF])
+        assert False, previewer_command
 
     # se não faz preview, então faz um hack no synctex.gz para direcionar para
     # o arquivo correto
