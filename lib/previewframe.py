@@ -70,7 +70,7 @@ def extract_frame(lines, args):
     begin_line = 0
     n = 0
     for i in range(args.linenum, -1, -1):
-        if re.match(r'\s*\\begin\{frame\}|\\frame\{', lines[i]):
+        if re.match(r'\s*(\\begin\{frame\}|\\frame\{)', lines[i]):
             n += 1
 
             # analisa configurações uma vez
@@ -115,7 +115,7 @@ def extract_frame(lines, args):
         # já encontrou os separadores esperados, procura até
         # fim do frame anterior, inclusão de arquivo ou
         # marcas %% de sorrounding
-        elif n == args.nbefore + 1 and re.match(r'\s*\\end\{frame\}|\\input|\\begin\{document\}|\\section|\\subsection|%%', lines[i]):
+        elif n == args.nbefore + 1 and re.match(r'\s*(\\end\{frame\}|\\if|\\input|\\begin\{document\}|\\section|\\subsection|%%)', lines[i]):
             begin_line = i + 1
             break
 
@@ -141,7 +141,7 @@ def extract_frame(lines, args):
         # já encontrou os separadores esperados, procura até
         # início do frame posterior, inclusão de arquivo ou
         # marcas %% de sorrounding
-        elif n >= args.nafter + 1 and re.match(r'\s*\\begin\{frame\}|\\frame\{|\\input|\\end\{document\}|\\section|\\subsection|%%', lines[i]):
+        elif n >= args.nafter + 1 and re.match(r'\s*(\\begin\{frame\}|\\frame\{|\\if|\\input|\\end\{document\}|\\section|\\subsection|%%)', lines[i]):
             end_line = i - 1
             break
 
