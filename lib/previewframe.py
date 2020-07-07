@@ -278,7 +278,7 @@ def main():
     previewer_command = re.split(r" +", args.previewer.strip())
     compiler_command = re.split(r" +", args.compiler.strip())
 
-    subprocess.check_call(compiler_command + [TEMP_FILE], timeout=5)
+    subprocess.check_call(compiler_command + [TEMP_FILE], timeout=300)
     if args.hack_synctex:
         subprocess.check_call(["gunzip", "beamerprevframe.synctex.gz"])
         sed_exp = "s#^Input:1:.*#Input:1:{}#".format(os.path.realpath(args.texfile))
