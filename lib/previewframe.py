@@ -77,6 +77,8 @@ def check_for_custom_args(lines, args):
                 args.compiler = val
             elif conf == "nopreview":
                 args.nopreview = val.lower() == "true" or val == "1"
+            elif conf == "handout":
+                args.handout = val != "false"
             # assert False, args
         return True
     return False
@@ -195,8 +197,9 @@ def create_prevfile(args):
 
     h = "" if p_file == args.texfile else extract_header(tex_lines, first_frame_line)
 
-
     contents = args.before_preample
+    if args.handout:
+        contents += "\\PassOptionsToClass{handout}{beamer}"
     contents += p
     contents += "\\begin{document}\n"
     contents += h
@@ -216,27 +219,49 @@ def create_prevfile(args):
 def main():
     parser = argparse.ArgumentParser(description="Prevê um frame do beamer.")
     parser.add_argument(
-        "-l", dest="linenum", required=True, type=int, help="número da linha do arquivo"
+        "-l",
+        dest="linenum",
+        required=True,
+        type=int,
+        help="número da linha do arquivo",
     )
-    parser.add_argument("-t", dest="texfile", required=True, help="nome do arquivo")
+    parser.add_argument(
+        "-t",
+        dest="texfile",
+        required=True,
+        help="nome do arquivo",
+    )
     parser.add_argument(
         "-m",
         dest="mainfile",
         default=None,
-        help="""nome do arquivo do preâmbulo ou
-                                nenhum para usar o mesmo arquivo do frame; se não encontrar nas primeiras
-                                linhas, então procura por arquivos .tex que tenham \\documentclass e estejam
-                                no mesmo diretorio""",
+        help="""
+                nome do arquivo do preâmbulo ou nenhum para usar o mesmo arquivo do
+                frame; se não encontrar nas primeiras linhas, então procura por arquivos
+                .tex que tenham \\documentclass e estejam no mesmo diretorio""",
     )
-    parser.add_argument("-a", dest="nbefore", type=int, default=0, help="número da frames antes")
-    parser.add_argument("-d", dest="nafter", type=int, default=0, help="número da frames depois")
+    parser.add_argument(
+        "-a",
+        dest="nbefore",
+        type=int,
+        default=0,
+        help="número da frames antes",
+    )
+    parser.add_argument(
+        "-d",
+        dest="nafter",
+        type=int,
+        default=0,
+        help="número da frames depois",
+    )
     parser.add_argument(
         "-s",
         dest="include_surroundings",
         action="store_false",
-        help="""Desabilita a includsão dos arredores dos frames
-                                (normalmente usados para comandos gerais; os arredores
-                                podem ser delimitados por comentários que começãom com %%""",
+        help="""
+            Desabilita a inclusão dos arredores dos frames
+            (normalmente usados para comandos gerais; os arredores
+            podem ser delimitados por comentários que começãom com %%""",
     )
     parser.add_argument(
         "-p",
@@ -263,8 +288,15 @@ def main():
         "-b",
         dest="before_preample",
         default="",
-        help="""Concatena antes do preâmbulo; útil para passar
-                                argumentos para pacotes: e.g.: \\PassOptionsToClass{handout}{beamer}""",
+        help="""
+            Concatena antes do preâmbulo; útil para passar
+            argumentos para pacotes: e.g.: \\PassOptionsToClass{handout}{beamer}""",
+    )
+    parser.add_argument(
+        "-o",
+        dest="handout",
+        action="store_true",
+        help="""Adiciona ao preâmbulo `\\PassOptionsToClass{handout}{beamer}`""",
     )
     args = parser.parse_args()
 
