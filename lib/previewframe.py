@@ -4,6 +4,7 @@ import argparse
 import os.path
 import re
 import subprocess
+from glob import glob
 
 TEMP_FILE_BASE = "beamerprevframe"
 TEMP_FILE = TEMP_FILE_BASE + ".tex"
@@ -16,41 +17,35 @@ def read_lines(filename):
     return content
 
 
-def extract_pramble(lines):
-    s = ""
-    for l in lines:
-        if re.match(r"\s*\\begin\{document\}", l):
-            break
-        s += l
-    return s
-
-
 def has_preamble(lines):
-    i = 0
-    for l in lines:
-        i += 1
-        if i > 20:
+    for i, line in enumerate(lines):
+        if i >= 20:
             break
-        if re.match(r"\s*\\documentclass", l):
+        if re.match(r"\s*\\documentclass", line):
             return True
     return False
 
 
-def find_preamble(dirpath, candidate, candidate_lines):
-    "Returns: preamble, preamble_file"
-    if has_preamble(candidate_lines):
-        return extract_pramble(candidate_lines), candidate
-    else:
-        from glob import glob
+def extract_preamble(lines):
+    s = ""
+    for line in lines:
+        if re.match(r"\s*\\begin\{document\}", line):
+            break
+        s += line
+    return s
 
-        for other in sorted(glob(os.path.join(dirpath, "*.tex"))):
-            if candidate == other:
-                continue
-            other_lines = read_lines(other)
-            if has_preamble(other_lines):
-                if os.path.basename(other) == TEMP_FILE:
-                    continue
-                return extract_pramble(other_lines), other
+
+def find_mainfile(texfile, tex_lines):
+    "Returns: main_lines, mainfile"
+    if has_preamble(tex_lines):
+        return texfile, tex_lines
+    tex_dir = os.path.dirname(texfile)
+    for name in sorted(glob(os.path.join(tex_dir, "*.tex"))):
+        if name == texfile or os.path.basename(name) == TEMP_FILE:
+            continue
+        lines = read_lines(name)
+        if has_preamble(lines):
+            return name, lines
     raise Exception("No preamble found")
 
 
@@ -84,6 +79,17 @@ def check_for_custom_args(lines, args):
     return False
 
 
+def check_for_mainfile(lines, args):
+    for line in lines:
+        m = re.match(r"\s*%\s*!\s*TEX\s*root\s*=(.*)", line)
+        if m is None:
+            continue
+        tex_dir = os.path.dirname(args.texfile)
+        args.mainfile = os.path.join(tex_dir, m.group(1).strip())
+        return True
+    return False
+
+
 def extract_frame(lines, args):
     """
     Finds a series of frames around a given line number and extracts
@@ -110,7 +116,7 @@ def extract_frame(lines, args):
                 parse_custom_args = False
 
             # atingiu mais separadores do que o esperado, mas não encontrou
-            # separador de fim de sorrounding
+            # separador de fim de surrounding
             if n > args.nbefore + 1:
                 break
             else:
@@ -120,7 +126,7 @@ def extract_frame(lines, args):
 
         # já encontrou os separadores esperados, procura até
         # fim do frame anterior, inclusão de arquivo ou
-        # marcas %% de sorrounding
+        # marcas %% de surrounding
         elif n == args.nbefore + 1 and re.match(
             r"\s*(\\end\{frame\}|\\if|\\input|\\begin\{document\}|\\section|\\subsection|%%)",
             lines[i],
@@ -139,7 +145,7 @@ def extract_frame(lines, args):
             n += 1
 
             # atingiu mais separadores do que o esperado, mas não encontrou
-            # separador de fim de sorrounding
+            # separador de fim de surrounding
             if n > args.nafter + 1:
                 break
             else:
@@ -149,7 +155,7 @@ def extract_frame(lines, args):
 
         # já encontrou os separadores esperados, procura até
         # início do frame posterior, inclusão de arquivo ou
-        # marcas %% de sorrounding
+        # marcas %% de surrounding
         elif n >= args.nafter + 1 and re.match(
             r"\s*(\\begin\{frame\}|\\frame\{|\\if|\\input|\\end\{document\}|\\section|\\subsection|%%)",
             lines[i],
@@ -163,57 +169,49 @@ def extract_frame(lines, args):
 def extract_header(lines, linenum):
     """
     extracts the first few lines in a file before any frame
-    and strictly befor the given line number
+    and strictly before the given line number
 
     return: header
     """
 
-    h = ""
+    header = ""
     for i in range(linenum):
         if re.match(r"\\begin\{(frame|document)\}|\\(frame|section|subsection)\{", lines[i]):
             break
-        h += lines[i]
+        header += lines[i]
 
-    return h
+    return header
 
 
 def create_prevfile(args):
     tex_lines = read_lines(args.texfile)
-    dirpath = os.path.dirname(args.texfile)
 
     check_for_custom_args(tex_lines[:3], args)
-
-    r, first_frame_line, last_frame_line = extract_frame(tex_lines, args)
-
-    # best guess for mainfile canditate
+    if not args.mainfile:
+        check_for_mainfile(tex_lines[:3], args)
     if args.mainfile:
-        candidate = args.mainfile
-        candidate_lines = read_lines(candidate)
+        main_lines = read_lines(args.mainfile)
     else:
-        candidate = args.texfile
-        candidate_lines = tex_lines
+        args.mainfile, main_lines = find_mainfile(args.texfile, tex_lines)
 
-    p, p_file = find_preamble(dirpath, candidate, candidate_lines)
-
-    h = "" if p_file == args.texfile else extract_header(tex_lines, first_frame_line)
+    preamble = extract_preamble(main_lines)
+    frames_text, first_frame_line, last_frame_line = extract_frame(tex_lines, args)
+    header = "" if args.mainfile == args.texfile else extract_header(tex_lines, first_frame_line)
+    if args.handout:
+        args.before_preample += "\\PassOptionsToClass{handout}{beamer}\n"
 
     contents = args.before_preample
-    if args.handout:
-        contents += "\\PassOptionsToClass{handout}{beamer}"
-    contents += p
+    contents += preamble
     contents += "\\begin{document}\n"
-    contents += h
+    contents += header
     if args.hack_synctex:
         cur_line = contents.count("\n")
-        add_lines = 2 * first_frame_line - last_frame_line - cur_line + 3
-        if add_lines < 0:
-            add_lines = 0
-        contents += "\n" * add_lines
-    contents += r
+        if cur_line < first_frame_line:
+            contents += "\n" * (first_frame_line - cur_line)
+    contents += frames_text
     contents += "\\end{document}\n"
 
-    with open(TEMP_FILE, "w") as f:
-        f.write(contents)
+    return contents
 
 
 def main():
@@ -223,36 +221,37 @@ def main():
         dest="linenum",
         required=True,
         type=int,
-        help="número da linha do arquivo",
+        help="Número da linha do arquivo",
     )
     parser.add_argument(
         "-t",
         dest="texfile",
         required=True,
-        help="nome do arquivo",
+        help="Nome do arquivo",
     )
     parser.add_argument(
         "-m",
         dest="mainfile",
         default=None,
         help="""
-                nome do arquivo do preâmbulo ou nenhum para usar o mesmo arquivo do
-                frame; se não encontrar nas primeiras linhas, então procura por arquivos
-                .tex que tenham \\documentclass e estejam no mesmo diretorio""",
+            Nome do arquivo do preâmbulo ou nenhum para usar o mesmo arquivo do
+            frame; se não encontrar nas primeiras linhas, então procura por arquivos
+            .tex que tenham \\documentclass e estejam no mesmo diretorio
+            """,
     )
     parser.add_argument(
         "-a",
         dest="nbefore",
         type=int,
         default=0,
-        help="número da frames antes",
+        help="Número da frames antes",
     )
     parser.add_argument(
         "-d",
         dest="nafter",
         type=int,
         default=0,
-        help="número da frames depois",
+        help="Número da frames depois",
     )
     parser.add_argument(
         "-s",
@@ -261,7 +260,8 @@ def main():
         help="""
             Desabilita a inclusão dos arredores dos frames
             (normalmente usados para comandos gerais; os arredores
-            podem ser delimitados por comentários que começãom com %%""",
+            podem ser delimitados por comentários que começam com %%
+            """,
     )
     parser.add_argument(
         "-p",
@@ -276,49 +276,53 @@ def main():
         help="copilador do pdf (argumentos separados por espaço)",
     )
     parser.add_argument(
-        "-n", dest="nopreview", action="store_true", help="desabilita visualização de pdf"
+        "-n",
+        dest="nopreview",
+        action="store_true",
+        help="desabilita visualização de pdf",
     )
     parser.add_argument(
         "-x",
         dest="hack_synctex",
         action="store_true",
-        help="habilita hack do synctex para voltar ao arquivo original",
+        help="Habilita hack do synctex para voltar ao arquivo original",
     )
     parser.add_argument(
         "-b",
         dest="before_preample",
         default="",
-        help="""
-            Concatena antes do preâmbulo; útil para passar
-            argumentos para pacotes: e.g.: \\PassOptionsToClass{handout}{beamer}""",
+        help="Concatena antes do preâmbulo",
     )
     parser.add_argument(
         "-o",
         dest="handout",
         action="store_true",
-        help="""Adiciona ao preâmbulo `\\PassOptionsToClass{handout}{beamer}`""",
+        help="Adiciona no início preâmbulo `\\PassOptionsToClass{handout}{beamer}`",
     )
     args = parser.parse_args()
+    args.linenum -= 1  # linha começa do zero no vetor do python
 
-    # linha começa do zero no vetor do python
-    args.linenum -= 1
+    # cria arquivo temporário
+    contents = create_prevfile(args)
+    main_dir = os.path.dirname(args.mainfile)
+    tmpfile = os.path.join(main_dir, TEMP_FILE)
+    with open(tmpfile, "w") as f:
+        f.write(contents)
 
-    # cria arquivo de preview primeiro, pois ele pode alterar configurações
-    create_prevfile(args)
+    previewer_command = args.previewer.split()
+    compiler_command = args.compiler.split()
 
-    # obtém comandos como listas
-    previewer_command = re.split(r" +", args.previewer.strip())
-    compiler_command = re.split(r" +", args.compiler.strip())
+    subprocess.check_call(compiler_command + [TEMP_FILE], timeout=300, cwd=main_dir)
 
-    subprocess.check_call(compiler_command + [TEMP_FILE], timeout=300)
+    syncfile = f"{TEMP_FILE_BASE}.synctex"
     if args.hack_synctex:
-        subprocess.check_call(["gunzip", "beamerprevframe.synctex.gz"])
-        sed_exp = "s#^Input:1:.*#Input:1:{}#".format(os.path.realpath(args.texfile))
-        subprocess.check_call(["sed", "-re", sed_exp, "-i", "beamerprevframe.synctex"])
-        subprocess.check_call(["gzip", "beamerprevframe.synctex"])
+        subprocess.check_call(["gunzip", f"{syncfile}.gz"], cwd=main_dir)
+        sed_exp = f"s#^Input:1:.*#Input:1:{os.path.realpath(args.texfile)}#"
+        subprocess.check_call(["sed", "-re", sed_exp, "-i", f"{syncfile}"], cwd=main_dir)
+        subprocess.check_call(["gzip", f"{syncfile}"], cwd=main_dir)
 
     if not args.nopreview:
-        subprocess.Popen(previewer_command + [TEMP_PDF])
+        subprocess.Popen(previewer_command + [TEMP_PDF], cwd=main_dir)
         assert False, previewer_command
 
     # se não faz preview, então faz um hack no synctex.gz para direcionar para
