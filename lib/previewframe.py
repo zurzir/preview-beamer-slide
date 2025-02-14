@@ -66,6 +66,8 @@ def check_for_custom_args(lines, args):
                 args.nafter = int(val)
             elif conf == "include_surroundings":
                 args.include_surroundings = val.lower() == "true" or val == "1"
+            elif conf == "extract_header":
+                args.extract_header = val.lower() == "true" or val == "1"
             elif conf == "previewer":
                 args.previewer = val
             elif conf == "compiler":
@@ -196,7 +198,10 @@ def create_prevfile(args):
 
     preamble = extract_preamble(main_lines)
     frames_text, first_frame_line, last_frame_line = extract_frame(tex_lines, args)
-    header = "" if args.mainfile == args.texfile else extract_header(tex_lines, first_frame_line)
+    if args.extract_header:
+        header = "" if args.mainfile == args.texfile else extract_header(tex_lines, first_frame_line)
+    else:
+        header = ""
     if args.handout:
         args.before_preample += "\\PassOptionsToClass{handout}{beamer}\n"
 
@@ -261,6 +266,15 @@ def main():
             Desabilita a inclusão dos arredores dos frames
             (normalmente usados para comandos gerais; os arredores
             podem ser delimitados por comentários que começam com %%
+            """,
+    )
+    parser.add_argument(
+        "-r",
+        dest="extract_header",
+        action="store_false",
+        help="""
+            Desabilita a inclusão das primeiras linhas
+            do arquivo
             """,
     )
     parser.add_argument(
